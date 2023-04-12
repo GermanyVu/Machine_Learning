@@ -1,9 +1,6 @@
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
-import matplotlib as mpl
 import copy
+
 
 
 class FFNN:
@@ -29,10 +26,12 @@ class FFNN:
         self.size_list.append(number_neurons)
         self.layer_idx_list = [i for i in range(len(self.size_list))]
 
+    def _cost(self, z):
+        return self._sigmoid(z) * (1 - self._sigmoid(z))
+        
     def make_weights(self):
-        self.bias_list = [
-            np.zeros((y, 1)) for y in self.size_list[1:]
-        ]  # creating column vectors for each layer
+        self.bias_list = [np.zeros((y, 1)) for y in self.size_list[1:]]  
+        # creating column vectors for each layer
         # except input layer
         # ex zeros(3,1) and zeros(1,1)  numpy array
         self.weight_list = [
@@ -52,23 +51,14 @@ class FFNN:
         return 1.0 / (1.0 + np.exp(-z))
 
     def _sigmoid_prime(self, z):
-        """Derivative of the sigmoid function."""
-        return self._sigmoid(z) * (1 - self._sigmoid(z))
-
-    def _cost(
-        self, a, label
-    ):  # a and label are both vectors. Each row represents a different
         # sample
         return 0.5 * np.sum((a - label) ** 2)
 
-    def _cost_ce(
-        self, a, label
-    ):  # a and label are both vectors. Each row represents a different
+    def _cost_ce(self, a, label):  # a and label are both vectors. Each row represents a different
         # sample
         """cross entropy cost function"""
         return np.sum(
-            ((-np.log(a)) * label + (-np.log(1 - a)) * (1 - label))
-        )  # compute cost
+            ((-np.log(a)) * label + (-np.log(1 - a)) * (1 - label)))  # compute cost
 
     def _cost_mult_sigmoid_prime(self, a, label):
         return a - label  # c'(a^L)*g'(z^L)
@@ -82,10 +72,8 @@ class FFNN:
         The point of this function is to use weights
         and biases to create a predicted final layer output
         """
-
-        for b, w in zip(
-            bias_list, weight_list
-        ):  # by looping the weifhts and biases like this we don;t have to worry about
+        for b, w in zip(bias_list, weight_list): 
+            # by looping the weifhts and biases like this we don;t have to worry about
             # which layer to extract them from
             # this is a first pass throughout the entire Network
             # can be used to calculate gradient checks
@@ -171,19 +159,14 @@ class FFNN:
         """
 
         for weight, delta, z in zip(
-            self.weight_list[1:][::-1], delta_list, self.z_list[0:-1][::-1]
-        ):
+            self.weight_list[1:][::-1], delta_list, self.z_list[0:-1][::-1]):
             delta_list.append(np.dot(weight.T, delta) * self._sigmoid_prime(z))
 
         """ gradients for biases and weights for all layers
             dc/db_j^l = delta_j^l
             dc/dw_ij^l = delta_j^l+1 * a_i^l"""
-        for (
-            delta,
-            a,
-        ) in zip(
-            delta_list[::-1], self.activations[0:-1]
-        ):  # reversed the deltas list and sliced the input neurons
+        for (delta,a) in zip(delta_list[::-1], self.activations[0:-1]): 
+            # reversed the deltas list and sliced the input neurons
             # out of the activation list
             # they should be the same size and going from first to last
             # layer
@@ -195,15 +178,10 @@ class FFNN:
         return gradient_weights, gradient_biases
 
     def _gradient_descent(
-        self, gradient_weights_tot, gradient_biases_tot, mini_batch_size
-    ):
+        self, gradient_weights_tot, gradient_biases_tot, mini_batch_size):
         for idx in self.layer_idx_list[:-1]:  # cut off the end
-            self.weight_list[idx] -= (
-                self.eta / mini_batch_size
-            ) * gradient_weights_tot[idx]
-            self.bias_list[idx] -= (self.eta / mini_batch_size) * gradient_biases_tot[
-                idx
-            ]
+            self.weight_list[idx] -= (self.eta / mini_batch_size) * gradient_weights_tot[idx]
+            self.bias_list[idx] -= (self.eta / mini_batch_size) * gradient_biases_tot[idx]
 
     def _update_mini_batch(self, mini_batch, mini_batch_size):
         """goes through batch and calls ff and backprop to product a tot grad weights and bias
@@ -224,9 +202,7 @@ class FFNN:
             for grad_w, idx in zip(gradient_weights, self.layer_idx_list[0:-1]):
                 gradient_weights_tot[idx] += grad_w
 
-        self._gradient_descent(
-            gradient_weights_tot, gradient_biases_tot, mini_batch_size
-        )
+        self._gradient_descent(gradient_weights_tot, gradient_biases_tot, mini_batch_size)
 
     def predict(self, test_inputs, test_labels):
         """shows how accurate the model is
@@ -261,8 +237,7 @@ class FFNN:
         return sum(int(x == y) for (x, y) in test_results)
 
     def stochastic_gradient(
-        self, training_data, epochs, mini_batch_size, test_data=None, test_inputs=None
-    ):
+        self, training_data, epochs, mini_batch_size, test_data=None, test_inputs=None):
         """Train the neural network using mini-batch stochastic
         gradient descent.  The ``training_data`` is a list of tuples
         ``(x, y)`` representing the training inputs and the desired
